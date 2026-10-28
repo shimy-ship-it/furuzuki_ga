@@ -1,1 +1,2 @@
 tsplib95>=0.7.1,<0.8
+matplotlib>=3.5,<4

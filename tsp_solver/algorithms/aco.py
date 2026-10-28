@@ -1,10 +1,9 @@
 """Ant-colony optimization for the traveling-salesperson problem."""
 
-from __future__ import annotations
-
 import math
 import random
 from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 from tsp_solver.instance import Node, TSPInstance
 from tsp_solver.result import OptimizationResult
@@ -31,19 +30,21 @@ class ACOConfig:
 
 
 class AntColonyOptimizer:
-    def __init__(self, config: ACOConfig | None = None) -> None:
+    def __init__(self, config: Optional[ACOConfig] = None) -> None:
         self.config = config or ACOConfig()
 
-    def solve(self, instance: TSPInstance, seed: int | None = None) -> OptimizationResult:
+    def solve(
+        self, instance: TSPInstance, seed: Optional[int] = None
+    ) -> OptimizationResult:
         rng = random.Random(seed)
         size = len(instance.nodes)
         node_indices = {node: index for index, node in enumerate(instance.nodes)}
         pheromone = [[1.0] * size for _ in range(size)]
-        best_tour: tuple[Node, ...] | None = None
+        best_tour: Optional[Tuple[Node, ...]] = None
         best_distance = math.inf
 
         for _ in range(self.config.iterations):
-            tours: list[tuple[tuple[Node, ...], float]] = []
+            tours: List[Tuple[Tuple[Node, ...], float]] = []
             for _ in range(self.config.ants):
                 tour = self._construct_tour(instance, pheromone, node_indices, rng)
                 distance = instance.tour_length(tour)
@@ -75,10 +76,10 @@ class AntColonyOptimizer:
     def _construct_tour(
         self,
         instance: TSPInstance,
-        pheromone: list[list[float]],
-        node_indices: dict[Node, int],
+        pheromone: List[List[float]],
+        node_indices: Dict[Node, int],
         rng: random.Random,
-    ) -> tuple[Node, ...]:
+    ) -> Tuple[Node, ...]:
         nodes = instance.nodes
         start = rng.randrange(len(nodes))
         route = [nodes[start]]

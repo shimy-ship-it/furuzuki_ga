@@ -1,14 +1,13 @@
 """Discrete swap-sequence particle swarm optimization for TSP tours."""
 
-from __future__ import annotations
-
 import random
 from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
 from tsp_solver.instance import TSPInstance
 from tsp_solver.result import OptimizationResult
 
-Swap = tuple[int, int]
+Swap = Tuple[int, int]
 
 
 @dataclass(frozen=True)
@@ -32,16 +31,18 @@ class PSOConfig:
 
 
 class ParticleSwarmOptimizer:
-    def __init__(self, config: PSOConfig | None = None) -> None:
+    def __init__(self, config: Optional[PSOConfig] = None) -> None:
         self.config = config or PSOConfig()
 
-    def solve(self, instance: TSPInstance, seed: int | None = None) -> OptimizationResult:
+    def solve(
+        self, instance: TSPInstance, seed: Optional[int] = None
+    ) -> OptimizationResult:
         rng = random.Random(seed)
         size = len(instance.nodes)
-        positions: list[list[int]] = []
-        personal_best: list[list[int]] = []
-        personal_cost: list[float] = []
-        velocities: list[list[Swap]] = []
+        positions: List[List[int]] = []
+        personal_best: List[List[int]] = []
+        personal_cost: List[float] = []
+        velocities: List[List[Swap]] = []
 
         for _ in range(self.config.particles):
             position = list(range(size))
@@ -86,15 +87,15 @@ class ParticleSwarmOptimizer:
         )
 
     @staticmethod
-    def _cost(instance: TSPInstance, position: list[int]) -> float:
+    def _cost(instance: TSPInstance, position: List[int]) -> float:
         tour = tuple(instance.nodes[index] for index in position)
         return instance.tour_length(tour)
 
     @staticmethod
-    def _difference(source: list[int], target: list[int]) -> list[Swap]:
+    def _difference(source: List[int], target: List[int]) -> List[Swap]:
         working = source.copy()
-        position_of = {value: index for index, value in enumerate(working)}
-        swaps: list[Swap] = []
+        position_of = dict((value, index) for index, value in enumerate(working))
+        swaps = []
         for index, target_value in enumerate(target):
             current_index = position_of[target_value]
             if current_index == index:
@@ -107,6 +108,6 @@ class ParticleSwarmOptimizer:
         return swaps
 
     @staticmethod
-    def _apply_swaps(position: list[int], swaps: list[Swap]) -> None:
+    def _apply_swaps(position: List[int], swaps: List[Swap]) -> None:
         for first, second in swaps:
             position[first], position[second] = position[second], position[first]

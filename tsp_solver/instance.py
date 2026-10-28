@@ -1,16 +1,14 @@
 """TSPLIB instance loading and distance access."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from math import isfinite
 from pathlib import Path
-from typing import Callable, Hashable
+from typing import Callable, Dict, Hashable, List, Optional, Tuple, Union
 
 import tsplib95
 
 Node = Hashable
-WeightFunction = Callable[[Node, Node], int | float]
+WeightFunction = Callable[[Node, Node], Union[int, float]]
 
 
 @dataclass(frozen=True)
@@ -18,9 +16,10 @@ class TSPInstance:
     """A TSPLIB problem with its node labels and edge-weight function."""
 
     name: str
-    nodes: tuple[Node, ...]
+    nodes: Tuple[Node, ...]
     _weight: WeightFunction
-    source: Path | None = None
+    source: Optional[Path] = None
+    coordinates: Optional[Dict[Node, Tuple[float, float]]] = None
 
     def __post_init__(self) -> None:
         if len(self.nodes) < 2:
@@ -37,7 +36,7 @@ class TSPInstance:
             )
         return weight
 
-    def tour_length(self, tour: tuple[Node, ...] | list[Node]) -> float:
+    def tour_length(self, tour: Union[Tuple[Node, ...], List[Node]]) -> float:
         """Return the length of a closed tour after checking its permutation."""
         if len(tour) != len(self.nodes) or set(tour) != set(self.nodes):
             raise ValueError("A tour must visit every instance node exactly once.")
@@ -47,7 +46,7 @@ class TSPInstance:
         )
 
 
-def load_instance(path: str | Path) -> TSPInstance:
+def load_instance(path: Union[str, Path]) -> TSPInstance:
     """Load a .tsp file through tsplib95, preserving its distance semantics."""
     source = Path(path).expanduser().resolve()
     if source.suffix.lower() != ".tsp":
@@ -57,15 +56,27 @@ def load_instance(path: str | Path) -> TSPInstance:
 
     problem = tsplib95.load(str(source))
     nodes = tuple(problem.get_nodes())
+    raw_coordinates = getattr(problem, "node_coords", None)
+    coordinates = None
+    if raw_coordinates:
+        coordinates = dict(
+            (node, (float(raw_coordinates[node][0]), float(raw_coordinates[node][1])))
+            for node in nodes
+            if node in raw_coordinates
+        )
+        if len(coordinates) != len(nodes):
+            coordinates = None
+
     return TSPInstance(
         name=problem.name or source.stem,
         nodes=nodes,
         _weight=problem.get_weight,
         source=source,
+        coordinates=coordinates,
     )
 
 
-def discover_instances(directory: str | Path) -> list[Path]:
+def discover_instances(directory: Union[str, Path]) -> List[Path]:
     """Return all .tsp files below directory in stable path order."""
     root = Path(directory).expanduser().resolve()
     if not root.is_dir():
